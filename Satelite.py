@@ -1,22 +1,27 @@
 import math
 import numpy as np
 from abc import ABC, abstractmethod
-from Methods import GaussNewton
+from Methods import GaussNewton, distance
 
-
+Point = list[float, 3] # Er í raun np.array
+Vector = list[Point] # -||-
 
 class Satelite(ABC):
 
-    earth_radius: int = 6371
+    earth_radius: int = 6371 # km
+    speed_of_light: float = 99792.458 # km/s
 
-    def __init__(self, A: float, B: float, C: float):
-        self.A = A
-        self.B = B
-        self.C = C
+    def __init__(self, A: Point, B: Point, C: Point, D: Point):
+        self.A: Point = A
+        self.B: Point = B
+        self.C: Point = C
+        self.D: Point = D
+
+        self.time_dilation: float = None
 
    
     @abstractmethod
-    def solve(self, At: float, Bt: float, Ct: float) -> tuple[float]:
+    def solve(self, At: float, Bt: float, Ct: float, Dt: float) -> tuple[float]:
         """ 
             Solves the system of equations according to the given travel times
             and the current positions of the satelites.
@@ -25,8 +30,13 @@ class Satelite(ABC):
 
 class StaticSatelite(Satelite):
 
-    def solve(self, At: float, Bt: float, Ct: float) -> tuple[float]:
-        print("static")
+    def solve(self, At: float, Bt: float, Ct: float, Dt: float) -> tuple[float]:
+        if self.time_dilation is None:
+            self.time_dilation = Dt - distance(self.D, [0]*3)/self.speed_of_light
+
+        return GaussNewton(np.array([0, 0, 6370]), np.c_[self.A, self.B, self.C],
+                          (np.array([At, Bt, Ct])-self.time_dilation)*self.speed_of_light)
+        
 
 
 class DynamicSatelite(Satelite):
@@ -55,11 +65,12 @@ class DynamicSatelite(Satelite):
         return (self.altitude*x for x in pos)
 
 
-stat = StaticSatelite(1,2,3)
-stat.solve(1,2,3)
-dyn = DynamicSatelite(1,2)
-dyn.solve(1,2,3)
-print(Satelite.earth_radius)
+centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
+stat = StaticSatelite(*(np.array(x) for x in centers))
+print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
+# dyn = DynamicSatelite(1,2)
+# dyn.solve(1,2,3)
+# print(Satelite.earth_radius)
 
 # def main():
 #     x0 = np.array((0, 0, 0))
