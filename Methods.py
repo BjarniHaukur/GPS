@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+
 Point = list[float, 3] # Er í raun np.array
 Vector = list[Point] # -||-
 e_mach = 2**-52
@@ -13,6 +14,7 @@ def Jacobi_row(p: Point, p0: Point) -> Point:
     return (p-p0)/dist
 
 def GaussNewton(x0: Point, centers: Vector, radii: list[float]) -> Point:
+    ##eigum að nota multivariate newton aðferðina í kafl 2.7
     assert len(centers) == len(radii), "Input arrays must have same length"
 
     x1 = np.zeros_like(x0)+2*e_mach
@@ -25,3 +27,4 @@ def GaussNewton(x0: Point, centers: Vector, radii: list[float]) -> Point:
         x1 = x1 + v
 
     return x1
+

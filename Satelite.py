@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from abc import ABC, abstractmethod
-from Methods import GaussNewton, distance
+from Methods import GaussNewton, distance, e_mach, Jacobi_row
 
 Point = list[float, 3] # Er í raun np.array
 Vector = list[Point] # -||-
@@ -11,14 +11,17 @@ class Satelite(ABC):
     earth_radius: int = 6371 # km
     speed_of_light: float = 99792.458 # km/s
 
-    def __init__(self, A: Point, B: Point, C: Point, D: Point):
+    def __init__(self, A: Point, B: Point, C: Point, t: Point): #(Ai,Bi,Ci,ti, d)
         self.A: Point = A
         self.B: Point = B
         self.C: Point = C
-        self.D: Point = D
+        self.t: Point = t
 
-        self.time_dilation: float = None
+        self.vars = np.array([self.A,self.B,self.C,self.t])
 
+    def get_radii(self, unknowns: np.ndarray) -> np.float64: #unknowns = (x,y,z,d)
+
+        return math.sqrt(np.sum(unknowns[:-1] - self.vars[:-1])**2) - self.speed_of_light*(self.t - unknowns[-1]) #reikna r_i
    
     @abstractmethod
     def solve(self, At: float, Bt: float, Ct: float, Dt: float) -> tuple[float]:
@@ -65,9 +68,11 @@ class DynamicSatelite(Satelite):
         return (self.altitude*x for x in pos)
 
 
+
 centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
-stat = StaticSatelite(*(np.array(x) for x in centers))
-print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
+satelites = [StaticSatelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
+
+#print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
 # dyn = DynamicSatelite(1,2)
 # dyn.solve(1,2,3)
 # print(Satelite.earth_radius)
