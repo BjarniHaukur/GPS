@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from abc import ABC, abstractmethod
-from Methods import GaussNewton, distance, e_mach, Jacobi_row
 
 Point = list[float, 3] # Er í raun np.array
 Vector = list[Point] # -||-
@@ -16,8 +15,7 @@ class Satelite(ABC):
         self.B: Point = B
         self.C: Point = C
         self.t: Point = t
-
-        self.vars = np.array([self.A,self.B,self.C,self.t])
+        self.vars: np.ndarray = np.array([self.A,self.B,self.C])
 
     def get_radii(self, unknowns: np.ndarray) -> np.float64: #unknowns = (x,y,z,d)
 
@@ -32,14 +30,20 @@ class Satelite(ABC):
         ...
 
 class StaticSatelite(Satelite):
+    def __init__(self, A: Point, B: Point, C: Point, t: Point): #(Ai,Bi,Ci,ti, d)
+        self.A: Point = A
+        self.B: Point = B
+        self.C: Point = C
+        self.t: Point = t
+        self.vars = np.array([self.A,self.B,self.C,self.t])
 
     def solve(self, At: float, Bt: float, Ct: float, Dt: float) -> tuple[float]:
-        if self.time_dilation is None:
-            self.time_dilation = Dt - distance(self.D, [0]*3)/self.speed_of_light
-
-        return GaussNewton(np.array([0, 0, 6370]), np.c_[self.A, self.B, self.C],
-                          (np.array([At, Bt, Ct])-self.time_dilation)*self.speed_of_light)
-        
+        #if self.time_dilation is None:
+        #    self.time_dilation = Dt - distance(self.D, [0]*3)/self.speed_of_light
+#
+        #return GaussNewton(np.array([0, 0, 6370]), np.c_[self.A, self.B, self.C],
+        #                  (np.array([At, Bt, Ct])-self.time_dilation)*self.speed_of_light)
+        pass
 
 
 class DynamicSatelite(Satelite):
