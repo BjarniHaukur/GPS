@@ -8,7 +8,7 @@ Vector = list[Point] # -||-
 class Satelite(ABC):
 
     earth_radius: int = 6371 # km
-    speed_of_light: float = 99792.458 # km/s
+    speed_of_light: float = 299792.458 # km/s
 
     def __init__(self, A: Point, B: Point, C: Point, t: Point): #(Ai,Bi,Ci,ti, d)
         self.A: Point = A
