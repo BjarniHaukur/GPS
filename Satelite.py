@@ -31,7 +31,7 @@ class SateliteSystem(ABC):
         """
         
     def get_radii(self, unknowns: np.ndarray) -> Callable[[Satelite], float]:
-        return lambda satelite : math.sqrt(np.sum(unknowns[:-1] - satelite.get_pos())) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
+        return lambda satelite : math.sqrt(np.sum((unknowns[:-1] - satelite.get_pos())**2)) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
 
 
 class StaticSystem(SateliteSystem):
@@ -55,7 +55,7 @@ class DynamicSystem(SateliteSystem):
         print("dynamic")
 
     # time/T fyrir réttan tíma
-    def getPos(self, time: float) -> tuple[float]:
+    def get_pos(self, time: float) -> tuple[float]:
 
         phi, theta = self.phi*time+self.offset_phi, self.theta*time+self.offset_theta
 
@@ -73,8 +73,8 @@ satelites = [Satelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 
 print(satelites[0].t)
 
 sys = StaticSystem(*satelites)
-print(sys.get_radii(np.array([0, 0, 6370, 0]))(satelites[0]))
-# print(sys.solve(np.array([0, 0, 6370, 0])))
+print(sys.solve(np.array([0, 0, 6370, 0])))
+
 
 #print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
 # dyn = DynamicSatelite(1,2)
