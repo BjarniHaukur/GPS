@@ -13,24 +13,31 @@ class Satelite:
     A: float
     B: float
     C: float 
-    t: float
 
     def get_pos(self): 
         return np.array([self.A, self.B, self.C])
+
+@dataclass
+class Receiver:
+    A: float
+    B: float
+    C: float
+
+    t: list[float]
     
 class DynamicSatelite(Satelite):
 
     def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, z: float = 6370) -> 'DynamicSatelite':
-        assert phi >= 0 and phi <= math.pi/2, "theta not in range"
-        assert theta >= 0 and theta <= 2*math.pi, "PHI not in range"
+        assert phi >= 0 and phi <= math.pi/2, "phi not in range"
+        assert theta >= 0 and theta <= 2*math.pi, "theta not in range"
 
         A: float = rho*math.cos(phi)*math.cos(theta)
         B: float = rho*math.cos(phi)*math.sin(theta)
         C: float = rho*math.sin(phi) - z
 
         R = math.sqrt(A**2 + B**2 + C**2)
-        t = d + R/SateliteSystem.speed_of_light
-        super().__init__(A,B,C,t)
+        t = d + R/SateliteSystem.speed_of_light #
+        super().__init__(A,B,C) # 
 
 
    
@@ -51,27 +58,28 @@ class SateliteSystem(ABC):
             and the current positions of the satelites.
         """
         
-    def get_radii(self, unknowns: np.ndarray) -> Callable[[Satelite], float]:
-        return lambda satelite : math.sqrt(np.sum( (unknowns[:-1] - satelite.get_pos())**2 )) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
+    def get_radii(self, unknowns: np.ndarray, dt: float) -> Callable[[Satelite], float]:
+        return lambda satelite : math.sqrt(np.sum( (unknowns[:-1] - satelite.get_pos())**2 )) - SateliteSystem.speed_of_light*(dt - unknowns[-1])
 
 
 class StaticSystem(SateliteSystem):
     
-    def F(self, unknowns: np.ndarray) -> np.ndarray:
-        solution = list(map(self.get_radii(unknowns), self.satelites))
+    def F(self, unknowns: np.ndarray, dt: float) -> np.ndarray:
+        solution = list(map(self.get_radii(unknowns, dt), self.satelites))
         return np.array(solution)
 
     def DF(self,x):
         return np.hstack(
             (
-                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
-                np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]).reshape(4,1)
+                np.array([Jacobi_row(x[:-1], s.get_pos()) for s in self.satelites]),
+                np.expand_dims([SateliteSystem.speed_of_light for _ in range(len(self.satelites))], axis=1)
             )
         )
-    def solve(self,x0) -> np.ndarray:
+
+    def solve(self, x0, dt) -> np.ndarray:
         xk = x0
         x_old = np.zeros_like(x0)
-        F_ = lambda x: self.F(x0) + self.DF(x0)@(x - x0)
+        F_ = lambda x: self.F(x0, dt) + self.DF(x0)@(x - x0)
         while (np.any((xk-x_old) > e_mach)):
             s = np.linalg.solve(self.DF(xk), -F_(xk))
             x_old = xk
@@ -102,8 +110,9 @@ class DynamicSystem(SateliteSystem):
 
 
 
-
-d = DynamicSatelite(phi=0,theta=0)
+r = Receiver(1,2,3, [0.1, 0.2, 0.3])
+print(r.t)
+# d = DynamicSatelite(phi=0,theta=0)
 # sys = StaticSystem(*(sat1, sat2, sat3,sat4))
 # print(sys.solve(np.array([0,0,6370,0])))
 
