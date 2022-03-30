@@ -45,7 +45,7 @@ class DynamicSystem(SateliteSystem):
     def __init__(self, phi: float, theta: float,
                  offset_phi: float = 0, offset_theta: float = 0, altitude: int = 20200):
 
-        self.radius = altitude + Satelite.earth_radius
+        self.radius = altitude + SateliteSystem.earth_radius
         self.phi = phi
         self.theta = theta
         self.offset_phi = offset_phi
