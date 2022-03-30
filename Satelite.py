@@ -1,63 +1,77 @@
 import math
 import numpy as np
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Callable
 
-Point = list[float, 3] # Er í raun np.array
-Vector = list[Point] # -||-
+from Methods import Jacobi_row,e_mach
 
-class Satelite(ABC):
+@dataclass
+class Satelite:
+    A: float
+    B: float
+    C: float 
+    t: float
+
+    def get_pos(self): 
+        return np.array([self.A, self.B, self.C])
+    
+   
+class SateliteSystem(ABC):
 
     earth_radius: int = 6371 # km
     speed_of_light: float = 299792.458 # km/s
 
-    def __init__(self, A: Point, B: Point, C: Point, t: Point): #(Ai,Bi,Ci,ti, d)
-        self.A: Point = A
-        self.B: Point = B
-        self.C: Point = C
-        self.t: Point = t
-        self.vars: np.ndarray = np.array([self.A,self.B,self.C])
+    def __init__(self,*satelites): #(Ai,Bi,Ci,ti, d)
+        self.satelites: tuple[Satelite] = np.array(satelites)
+      
 
-    def get_radii(self, unknowns: np.ndarray) -> np.float64: #unknowns = (x,y,z,d)
 
-        return math.sqrt(np.sum(unknowns[:-1] - self.vars[:-1])**2) - self.speed_of_light*(self.t - unknowns[-1]) #reikna r_i
-   
     @abstractmethod
-    def solve(self, At: float, Bt: float, Ct: float, Dt: float) -> tuple[float]:
+    def solve(self, unknown: np.ndarray) -> np.ndarray:
         """ 
             Solves the system of equations according to the given travel times
             and the current positions of the satelites.
         """
-        ...
-
-class StaticSatelite(Satelite):
-    def __init__(self, A: Point, B: Point, C: Point, t: Point): #(Ai,Bi,Ci,ti, d)
-        self.A: Point = A
-        self.B: Point = B
-        self.C: Point = C
-        self.t: Point = t
-        self.vars = np.array([self.A,self.B,self.C,self.t])
-
-    def solve(self, At: float, Bt: float, Ct: float, Dt: float) -> tuple[float]:
-        #if self.time_dilation is None:
-        #    self.time_dilation = Dt - distance(self.D, [0]*3)/self.speed_of_light
-#
-        #return GaussNewton(np.array([0, 0, 6370]), np.c_[self.A, self.B, self.C],
-        #                  (np.array([At, Bt, Ct])-self.time_dilation)*self.speed_of_light)
-        pass
+        
+    def get_radii(self, unknowns: np.ndarray) -> Callable[[Satelite], float]:
+        return lambda satelite : math.sqrt(np.sum( (unknowns[:-1] - satelite.get_pos())**2 )) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
 
 
-class DynamicSatelite(Satelite):
+class StaticSystem(SateliteSystem):
+    
+    def F(self, unknowns: np.ndarray) -> np.ndarray:
+        solution = list(map(self.get_radii(unknowns), self.satelites))
+        return np.array(solution)
+    def DF(self,x):
+        return np.hstack(
+            (
+                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
+                np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]).reshape(4,1)
+            )
+        )
+    def solve(self,x0) -> np.ndarray:
+        xk = x0
+        x_old = np.zeros_like(x0)
+        F_ = lambda x: self.F(x0) + self.DF(x0)@(x - x0)
+        while (np.any((xk-x_old) > e_mach)):
+            s = np.linalg.solve(self.DF(xk), -F_(xk))
+            x_old = xk
+            xk = xk + s
+        return xk
+
+class DynamicSystem(SateliteSystem):
 
     def __init__(self, phi: float, theta: float,
-                 offset_phi: float = 0, offset_theta: float = 0, altitude: int = 20200) -> "Satelite":
+                 offset_phi: float = 0, offset_theta: float = 0, altitude: int = 20200):
 
-        self.radius = altitude + Satelite.earth_radius
+        self.radius = altitude + SateliteSystem.earth_radius
         self.phi = phi
         self.theta = theta
         self.offset_phi = offset_phi
         self.offset_theta = offset_theta
     
-    def solve(self, At: float, Bt: float, Ct: float) -> tuple[float]:
+    def solve(self) -> tuple[float]:
         print("dynamic")
 
     # time/T fyrir réttan tíma
@@ -73,8 +87,17 @@ class DynamicSatelite(Satelite):
 
 
 
-centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
-satelites = [StaticSatelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
+
+sat1 = Satelite(15600,7540,20140,0.07074)
+sat2 = Satelite(18760,2750,18610,0.07220)
+sat3 = Satelite(17610,14630,13480,0.07690)
+sat4 = Satelite(19170,610,18390,0.07242)
+
+sys = StaticSystem(*(sat1, sat2, sat3,sat4))
+print(sys.solve(np.array([0,0,6370,0])))
+
+# centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
+# satelites = [StaticSatelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
 
 #print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
 # dyn = DynamicSatelite(1,2)
