@@ -23,8 +23,8 @@ if __name__ == '__main__':
 
     matrix = np.vstack([row(sat1, x) for x in [sat2, sat3, sat4]])
 
-    # x = id + j
-    # y = k*d +l
+    # x = i*d + j
+    # y = k*d + l
     # z = m*d + n
 
     # regla Cramer's, sleppt mínus þegar við breyttum röðinni af dálkum
