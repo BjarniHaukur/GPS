@@ -3,7 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
-
+from random import uniform
 from Methods import Jacobi_row, e_mach
 
 
@@ -18,16 +18,20 @@ class Satelite:
     def get_pos(self): 
         return np.array([self.A, self.B, self.C])
     
-class DynamicSatelite:
+class DynamicSatelite(Satelite):
 
-    def __init__(self, phi, theta, rho =26570 ) -> Satelite:
-        assert phi >= 0 and phi <= math.PI/2, "theta not in range"
-        assert theta >= 0 and theta <= math.PI/2, "PHI not in range"
-        return Satelite(
-            A = rho*math.cos(phi)*math.cos(theta),
-            B = rho*math.cos(phi)*math.sin(theta),
-            C = rho*math.sin(phi)
-        )
+    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, z: float = 6370) -> 'DynamicSatelite':
+        assert phi >= 0 and phi <= math.pi/2, "theta not in range"
+        assert theta >= 0 and theta <= 2*math.pi, "PHI not in range"
+
+        A: float = rho*math.cos(phi)*math.cos(theta)
+        B: float = rho*math.cos(phi)*math.sin(theta)
+        C: float = rho*math.sin(phi) - z
+
+        R = math.sqrt(A**2 + B**2 + C**2)
+        t = d + R/SateliteSystem.speed_of_light
+        super().__init__(A,B,C,t)
+
 
    
 class SateliteSystem(ABC):
@@ -56,6 +60,7 @@ class StaticSystem(SateliteSystem):
     def F(self, unknowns: np.ndarray) -> np.ndarray:
         solution = list(map(self.get_radii(unknowns), self.satelites))
         return np.array(solution)
+
     def DF(self,x):
         return np.hstack(
             (
@@ -75,15 +80,12 @@ class StaticSystem(SateliteSystem):
 
 class DynamicSystem(SateliteSystem):
 
-    def __init__(self, phi: float, theta: float,
-                 offset_phi: float = 0, offset_theta: float = 0, altitude: int = 20200):
+    def __init__(self,phi_values,theta_values) -> 'DynamicSystem':
+        assert len(phi_values) == len(theta_values)
 
-        self.radius = altitude + SateliteSystem.earth_radius
-        self.phi = phi
-        self.theta = theta
-        self.offset_phi = offset_phi
-        self.offset_theta = offset_theta
-    
+        self.satelites = [DynamicSatelite(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)]
+
+
     def solve(self) -> tuple[float]:
         print("dynamic")
 
@@ -116,6 +118,7 @@ sat4 = Satelite(19170,610,18390,0.07242)
 
 print(np.vstack([row(sat1, x) for x in [sat2, sat3, sat4]]))
 
+d = DynamicSatelite(phi=0,theta=0)
 # sys = StaticSystem(*(sat1, sat2, sat3,sat4))
 # print(sys.solve(np.array([0,0,6370,0])))
 
