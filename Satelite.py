@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
 
+from Methods import Jacobi_row,e_mach
+
 @dataclass
 class Satelite:
     A: float
@@ -20,8 +22,10 @@ class SateliteSystem(ABC):
     earth_radius: int = 6371 # km
     speed_of_light: float = 299792.458 # km/s
 
-    def __init__(self, *satelites): #(Ai,Bi,Ci,ti, d)
-        self.satelites = np.array(satelites)
+    def __init__(self,*satelites): #(Ai,Bi,Ci,ti, d)
+        self.satelites: tuple[Satelite] = np.array(satelites)
+      
+
 
     @abstractmethod
     def solve(self, unknown: np.ndarray) -> np.ndarray:
@@ -31,14 +35,30 @@ class SateliteSystem(ABC):
         """
         
     def get_radii(self, unknowns: np.ndarray) -> Callable[[Satelite], float]:
-        return lambda satelite : math.sqrt(np.sum(unknowns[:-1] - satelite.get_pos())) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
+        return lambda satelite : math.sqrt(np.sum( (unknowns[:-1] - satelite.get_pos())**2 )) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
 
 
 class StaticSystem(SateliteSystem):
-
-    def solve(self, unknowns: np.ndarray) -> np.ndarray:
+    
+    def F(self, unknowns: np.ndarray) -> np.ndarray:
         solution = list(map(self.get_radii(unknowns), self.satelites))
         return np.array(solution)
+    def DF(self,x):
+        return np.hstack(
+            (
+                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
+                np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]).reshape(4,1)
+            )
+        )
+    def solve(self,x0) -> np.ndarray:
+        xk = x0
+        x_old = np.zeros_like(x0)
+        F_ = lambda x: self.F(x0) + self.DF(x0)@(x - x0)
+        while (np.any((xk-x_old) > e_mach)):
+            s = np.linalg.solve(self.DF(xk), -F_(xk))
+            x_old = xk
+            xk = xk + s
+        return xk
 
 class DynamicSystem(SateliteSystem):
 
@@ -68,12 +88,13 @@ class DynamicSystem(SateliteSystem):
 
 
 
-test1 = Satelite(1,2,3,4)
-test2 = Satelite(1,2,3,4)
-test3 = Satelite(1,2,3,4)
+sat1 = Satelite(15600,7540,20140,0.07074)
+sat2 = Satelite(18760,2750,18610,0.07220)
+sat3 = Satelite(17610,14630,13480,0.07690)
+sat4 = Satelite(19170,610,18390,0.07242)
 
-sys = StaticSystem(test1, test2, test3)
-sys.solve([100,100,100,100])
+sys = StaticSystem(*(sat1, sat2, sat3,sat4))
+print(sys.solve(np.array([0,0,6370,0])))
 
 # centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
 # satelites = [StaticSatelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
