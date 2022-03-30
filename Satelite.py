@@ -67,16 +67,14 @@ class DynamicSystem(SateliteSystem):
 
 
 
+centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
+satelites = [Satelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
 
-test1 = Satelite(1,2,3,4)
-test2 = Satelite(1,2,3,4)
-test3 = Satelite(1,2,3,4)
+print(satelites[0].t)
 
-sys = StaticSystem(test1, test2, test3)
-sys.solve([100,100,100,100])
-
-# centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
-# satelites = [StaticSatelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
+sys = StaticSystem(*satelites)
+print(sys.get_radii(np.array([0, 0, 6370, 0]))(satelites[0]))
+# print(sys.solve(np.array([0, 0, 6370, 0])))
 
 #print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
 # dyn = DynamicSatelite(1,2)
