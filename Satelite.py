@@ -18,16 +18,16 @@ class Satelite:
     def get_pos(self): 
         return np.array([self.A, self.B, self.C])
     
-class DynamicSatelite:
 
-    def __init__(self, phi, theta, rho =26570 ) -> Satelite:
-        assert phi >= 0 and phi <= math.PI/2, "theta not in range"
-        assert theta >= 0 and theta <= math.PI/2, "PHI not in range"
-        return Satelite(
-            A = rho*math.cos(phi)*math.cos(theta),
-            B = rho*math.cos(phi)*math.sin(theta),
-            C = rho*math.sin(phi)
-        )
+
+def dynamic_satelite(phi, theta, rho =26570 ) -> Satelite:
+    assert phi >= 0 and phi <= math.PI/2, "theta not in range"
+    assert theta >= 0 and theta <= math.PI/2, "PHI not in range"
+    return Satelite(
+        A = rho*math.cos(phi)*math.cos(theta),
+        B = rho*math.cos(phi)*math.sin(theta),
+        C = rho*math.sin(phi)
+    )
 
    
 class SateliteSystem(ABC):
@@ -99,22 +99,7 @@ class DynamicSystem(SateliteSystem):
         return (self.altitude*x for x in pos)
 
 
-def row(a: Satelite, b: Satelite):
-    xyzd = np.array([a.A-b.A, a.B-b.B, a.C-b.C, (b.t-a.t)*SateliteSystem.speed_of_light**2])*(-2)
-    plus = sum([x**2 for x in [a.A, a.B, a.C, b.t*SateliteSystem.speed_of_light]])
-    minus = sum([x**2 for x in [b.A, b.B, b.C, a.t*SateliteSystem.speed_of_light]])
-    w = np.array([plus-minus])
 
-    return np.hstack([xyzd, w])
-
-
-
-sat1 = Satelite(15600,7540,20140,0.07074)
-sat2 = Satelite(18760,2750,18610,0.07220)
-sat3 = Satelite(17610,14630,13480,0.07690)
-sat4 = Satelite(19170,610,18390,0.07242)
-
-print(np.vstack([row(sat1, x) for x in [sat2, sat3, sat4]]))
 
 # sys = StaticSystem(*(sat1, sat2, sat3,sat4))
 # print(sys.solve(np.array([0,0,6370,0])))
