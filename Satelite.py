@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
 
-from Methods import Jacobi_row,e_mach
+from Methods import Jacobi_row, e_mach
 
 @dataclass
 class Satelite:
