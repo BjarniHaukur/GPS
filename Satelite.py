@@ -16,29 +16,14 @@ class SateliteConnection:
 
     def get_pos(self): 
         return np.array([self.A, self.B, self.C])
-    
-class DynamicSateliteConnection(SateliteConnection):
-
-    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, guess: tuple[float] = (0,0,6370)):
-        assert phi >= 0 and phi <= math.pi/2, "phi not in range"
-        assert theta >= 0 and theta <= 2*math.pi, "theta not in range"
-
-        A: float = rho*math.cos(phi)*math.cos(theta)
-        B: float = rho*math.cos(phi)*math.sin(theta)
-        C: float = rho*math.sin(phi)
-        x,y,z = guess
-        R = math.sqrt((A-x)**2 + (B-y)**2 + (C-z)**2)
-        t = d + R/SateliteSystem.speed_of_light
-        super().__init__(A,B,C,t)
 
 
-   
 class SateliteSystem:
 
     earth_radius: int = 6370 # km
     speed_of_light: float = 299792.458 # km/s
     
-    def __init__(self, *sateliteConnections):
+    def __init__(self, sateliteConnections):
         self.satelites: list[SateliteConnection] = sateliteConnections
 
     def get_satelites(self):
@@ -59,10 +44,9 @@ class SateliteSystem:
     def get_radii(self, unknowns: np.ndarray) -> Callable[[SateliteConnection], float]:
         return lambda sateliteConnection : math.sqrt(np.sum( (unknowns[:-1] - sateliteConnection.get_pos())**2 )) - SateliteSystem.speed_of_light*(sateliteConnection.t - unknowns[-1])
 
-    def solve(self,position):
+    def solve_GN(self,position):
         curr_pos = position
         old_pos = np.zeros_like(position)
-
 
         iteration = 0
         while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
@@ -74,47 +58,38 @@ class SateliteSystem:
             iteration += 1
         return curr_pos
 
-    #def solve(self, position) -> np.ndarray:
-    #    """ 
-    #        Solves the system of equations according to the given travel times
-    #        and the current positions of the sateliteConnections.
-    #    """
-    #    curr_pos = position
-    #    old_pos = np.zeros_like(position)
-    #    F_ = lambda x: self.F(position) + self.DF(position)@(x - position)
-#
-    #    is_square = len(self.satelites)==4
-#
-    #    iteration = 0
-    #    while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
-    #        if is_square:
-    #            s = np.linalg.solve(self.DF(curr_pos), -F_(curr_pos))
-    #        else:
-    #            inv_matrix = np.linalg.pinv(self.DF(curr_pos))
-    #            s = inv_matrix@(-F_(curr_pos))
-    #        old_pos = curr_pos
-    #        curr_pos = curr_pos + s
-    #        iteration += 1
-    #    return curr_pos
+    def solve_multivariate(self, position) -> np.ndarray:
+       """ 
+           Solves the system of equations according to the given travel times
+           and the current positions of the sateliteConnections.
+       """
+       curr_pos = position
+       old_pos = np.zeros_like(position)
+       F_ = lambda x: self.F(position) + self.DF(position)@(x - position)
+
+       is_square = len(self.satelites)==4
+
+       iteration = 0
+       while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
+           if is_square:
+               s = np.linalg.solve(self.DF(curr_pos), -F_(curr_pos))
+           else:
+               inv_matrix = np.linalg.pinv(self.DF(curr_pos))
+               s = inv_matrix@(-F_(curr_pos))
+           old_pos = curr_pos
+           curr_pos = curr_pos + s
+           iteration += 1
+       return curr_pos
 
 
 
 class DynamicSystem(SateliteSystem):
 
-    def __init__(self, theta_min = 0, theta_max = 2*math.pi, phi_min = 0, phi_max = math.pi/2, n = 4, guess = (0,0,6370)):
-
-        self.args = (theta_min,theta_max,phi_min,phi_max,n) #used for reinitialization
-
-        #velja af handahófi phi og theta
-        theta_values = np.random.uniform(theta_min, theta_max, n)
-        phi_values = np.random.uniform(phi_min, phi_max, n)
-        super().__init__(*(DynamicSateliteConnection(phi = phi, theta = theta, guess=guess) for (phi, theta) in zip(phi_values, theta_values)))
-
     def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> tuple[list[float],list[float]]: #t_error á mögulega að vera mismunandi gildi.. ?? 
         position_errors = []
         emfs = []
         for _ in range(num_iterations):
-            old_pos = self.solve(position)
+            old_pos = self.solve_GN(position)
             old_pos_times = np.array([satelite.t for satelite in self.satelites])
 
             diff_pos_times = np.zeros_like(old_pos_times)
@@ -123,7 +98,7 @@ class DynamicSystem(SateliteSystem):
                 satelite.t += t_error
                 diff_pos_times[i] = np.abs(t_error)
 
-            new_pos = self.solve(position)
+            new_pos = self.solve_GN(position)
 
             pos_change = np.abs(old_pos - new_pos)
             emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
@@ -133,7 +108,7 @@ class DynamicSystem(SateliteSystem):
             emfs.append(emf)
             self.__init__(*self.args)
 
-        return position_errors, emfs, new_pos
+        return position_errors, emfs
 
 
 
