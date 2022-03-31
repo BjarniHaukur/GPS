@@ -12,7 +12,7 @@ if __name__ == '__main__':
     
     sys = SateliteSystem(*(sat1, sat2, sat3,sat4))
     r_pos = sys.solve(np.array([0,0,6370,0]))
-    print(r_pos)
+    print(f"x= {r_pos[0]}, y= {r_pos[1]}, z= {r_pos[2]}, d= {r_pos[3]}")
     plot_satelites(sys, r_pos, name="d1")
 
 
