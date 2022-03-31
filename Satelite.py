@@ -19,7 +19,7 @@ class SateliteConnection:
     
 class DynamicSateliteConnection(SateliteConnection):
 
-    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, guess: list[float] = [0,0,6370]):
+    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, z: float = 6370):
         assert phi >= 0 and phi <= math.pi/2, "phi not in range"
         assert theta >= 0 and theta <= 2*math.pi, "theta not in range"
 
@@ -52,7 +52,7 @@ class SateliteSystem:
         return np.hstack(
             (
                 np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
-                np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]).reshape(4,1)
+                np.expand_dims(np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]), axis=1)
             )
         )
 
@@ -67,9 +67,16 @@ class SateliteSystem:
         curr_pos = position
         old_pos = np.zeros_like(position)
         F_ = lambda x: self.F(position) + self.DF(position)@(x - position)
+
+        is_square = len(self.satelites)==4
+
         iteration = 0
         while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
-            s = np.linalg.solve(self.DF(curr_pos), -F_(curr_pos))
+            if is_square:
+                s = np.linalg.solve(self.DF(curr_pos), -F_(curr_pos))
+            else:
+                inv_matrix = np.linalg.pinv(self.DF(curr_pos))
+                s = inv_matrix@(-F_(curr_pos))
             old_pos = curr_pos
             curr_pos = curr_pos + s
             iteration += 1
@@ -110,7 +117,7 @@ class DynamicSystem(SateliteSystem):
             emfs.append(emf)
             self.__init__(*self.args)
 
-        return position_errors, emfs, new_pos
+        return position_errors, emfs
 
 
 
