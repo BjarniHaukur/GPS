@@ -93,9 +93,9 @@ class DynamicSystem(SateliteSystem):
         phi_values = np.linspace(phi_min, phi_max, num=n)
         super().__init__(*(DynamicSateliteConnection(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)))
 
-    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> float: #t_error á mögulega að vera mismunandi gildi.. ?? 
-        max_cop = float('-inf')
-        max_emf = float('-inf')
+    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> tuple[list[float],list[float]]: #t_error á mögulega að vera mismunandi gildi.. ?? 
+        position_errors = []
+        emfs = []
         for _ in range(num_iterations):
             old_pos = self.solve(position)
             old_pos_times = np.array([satelite.t for satelite in self.satelites])
@@ -110,11 +110,12 @@ class DynamicSystem(SateliteSystem):
 
             pos_change = np.abs(old_pos - new_pos)
             emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
-            cop = distance(new_pos, old_pos)
-            max_cop = max(max_cop,cop)
-            max_emf = max(max_emf, emf)
+            position_error = distance(new_pos, old_pos)
+       
+            position_errors.append(position_error)
+            emfs.append(emf)
             self.__init__(*self.args)
-        return max_cop*1000, max_emf
+        return position_errors, emfs
 
 
 
