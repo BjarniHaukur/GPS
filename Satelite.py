@@ -3,13 +3,13 @@ import numpy as np
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
-from random import uniform
-from Methods import Jacobi_row, e_mach
+from random import randint, uniform
+from Methods import Jacobi_row, distance, e_mach
 
 
 
 @dataclass
-class Satelite:
+class SateliteConnection:
     A: float
     B: float
     C: float 
@@ -18,11 +18,11 @@ class Satelite:
     def get_pos(self): 
         return np.array([self.A, self.B, self.C])
     
-class DynamicSatelite(Satelite):
+class DynamicSateliteConnection(SateliteConnection):
 
-    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, z: float = 6370) -> 'DynamicSatelite':
-        assert phi >= 0 and phi <= math.pi/2, "theta not in range"
-        assert theta >= 0 and theta <= 2*math.pi, "PHI not in range"
+    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, z: float = 6370) -> 'DynamicSateliteConnection':
+        assert phi >= 0 and phi <= math.pi/2, "phi not in range"
+        assert theta >= 0 and theta <= 2*math.pi, "theta not in range"
 
         A: float = rho*math.cos(phi)*math.cos(theta)
         B: float = rho*math.cos(phi)*math.sin(theta)
@@ -38,95 +38,71 @@ class SateliteSystem(ABC):
 
     earth_radius: int = 6371 # km
     speed_of_light: float = 299792.458 # km/s
-
-    def __init__(self,*satelites): #(Ai,Bi,Ci,ti, d)
-        self.satelites: tuple[Satelite] = np.array(satelites)
       
 
 
-    @abstractmethod
-    def solve(self, unknown: np.ndarray) -> np.ndarray:
-        """ 
-            Solves the system of equations according to the given travel times
-            and the current positions of the satelites.
-        """
-        
-    def get_radii(self, unknowns: np.ndarray) -> Callable[[Satelite], float]:
-        return lambda satelite : math.sqrt(np.sum( (unknowns[:-1] - satelite.get_pos())**2 )) - SateliteSystem.speed_of_light*(satelite.t - unknowns[-1])
-
-
-class StaticSystem(SateliteSystem):
-    
     def F(self, unknowns: np.ndarray) -> np.ndarray:
-        solution = list(map(self.get_radii(unknowns), self.satelites))
+        solution = list(map(self.get_radii(unknowns), self.sateliteConnections))
         return np.array(solution)
 
     def DF(self,x):
         return np.hstack(
             (
-                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
-                np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]).reshape(4,1)
+                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.sateliteConnections]),
+                np.array([SateliteSystem.speed_of_light for _ in range(len(self.sateliteConnections))]).reshape(4,1)
             )
         )
-    def solve(self,x0) -> np.ndarray:
-        xk = x0
-        x_old = np.zeros_like(x0)
-        F_ = lambda x: self.F(x0) + self.DF(x0)@(x - x0)
-        while (np.any((xk-x_old) > e_mach)):
-            s = np.linalg.solve(self.DF(xk), -F_(xk))
-            x_old = xk
-            xk = xk + s
-        return xk
+
+    def get_radii(self, unknowns: np.ndarray) -> Callable[[SateliteConnection], float]:
+        return lambda sateliteConnection : math.sqrt(np.sum( (unknowns[:-1] - sateliteConnection.get_pos())**2 )) - SateliteSystem.speed_of_light*(sateliteConnection.t - unknowns[-1])
+    def solve(self,position) -> np.ndarray:
+        """ 
+            Solves the system of equations according to the given travel times
+            and the current positions of the sateliteConnections.
+        """
+        curr_pos = position
+        old_pos = np.zeros_like(position)
+        F_ = lambda x: self.F(position) + self.DF(position)@(x - position)
+        iteration = 0
+        while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
+            s = np.linalg.solve(self.DF(curr_pos), -F_(curr_pos))
+            old_pos = curr_pos
+            curr_pos = curr_pos + s
+            iteration += 1
+        return curr_pos
+
+class StaticSystem(SateliteSystem):
+    def __init__(self,*sateliteConnections): #(Ai,Bi,Ci,ti, d)
+        self.sateliteConnections: tuple[SateliteConnection] = sateliteConnections
+
+    
+    
+
 
 class DynamicSystem(SateliteSystem):
 
-    def __init__(self,phi_values,theta_values) -> 'DynamicSystem':
-        assert len(phi_values) == len(theta_values)
+    def __init__(self,theta_min = 0,theta_max = 2*math.pi,phi_min = 0,phi_max = math.pi/2, n= 4) -> 'DynamicSystem':
+ 
+        theta_values = np.linspace(theta_min,theta_max, num= n)
+        phi_values = np.linspace(phi_min,phi_max,num=n)
+        self.sateliteConnections = [DynamicSateliteConnection(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)]
 
-        self.satelites = [DynamicSatelite(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)]
+    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> float: #t_error á mögulega að vera mismunandi gildi.. ?? 
+        old_pos = self.solve(position)
+        old_pos_times = np.array([satelite.t for satelite in self.sateliteConnections])
+        
+        diff_pos_times = np.zeros_like(old_pos_times)
+        for i,satelite in enumerate(self.sateliteConnections):
+            t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1)
+            satelite.t += t_error
+            diff_pos_times[i] = np.abs(t_error)
+
+        new_pos = self.solve(position)
+
+        pos_change = np.abs(old_pos - new_pos)
+        emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
+        cop = distance(new_pos, old_pos)
+        print(f"COP: {cop} - EMF: {emf}")
 
 
-    def solve(self) -> tuple[float]:
-        print("dynamic")
 
-    # time/T fyrir réttan tíma
-    def getPos(self, time: float) -> tuple[float]:
-
-        phi, theta = self.phi*time+self.offset_phi, self.theta*time+self.offset_theta
-
-        pos = (math.cos(phi)*math.cos(theta),
-               math.cos(phi)*math.sin(theta),
-               math.sin(theta))
-
-        return (self.altitude*x for x in pos)
-
-
-
-
-d = DynamicSatelite(phi=0,theta=0)
-# sys = StaticSystem(*(sat1, sat2, sat3,sat4))
-# print(sys.solve(np.array([0,0,6370,0])))
-
-# centers = np.array([(15600, 7540, 20140), (18760, 2750, 18610), (17610, 14630, 13480), (19170, 610, 18390)])
-# satelites = [StaticSatelite(*x,t) for x,t in zip(centers, (0.07074, 0.07220, 0.07690, 0.07242))]
-
-#print(stat.solve(0.07074, 0.07220, 0.07690, 0.07242))
-# dyn = DynamicSatelite(1,2)
-# dyn.solve(1,2,3)
-# print(Satelite.earth_radius)
-
-# def main():
-#     x0 = np.array((0, 0, 0))
-#     centers1 = np.array([(0, 1, 1), (1,1, 1), (0,-1, 100)])
-#     radii1 = np.array([1, 1, 1])
-#     # centers2 = np.array([(-1,0), (1,1), (1,-1)])
-#     # radii2 = np.array([1, 1, 1])
-    
-
-#     x1 = GaussNewton(x0, centers1, radii1)
-#     print(f"Least square distance for example 1 is at: {x1}")
-#     # x2 = GaussNewton(x0, centers2, radii2)
-#     # print(f"Least square distance for example 2 is at: {x2}")
-
-# if __name__ == "__main__":
-#     main()
