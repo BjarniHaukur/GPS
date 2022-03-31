@@ -1,9 +1,16 @@
+<<<<<<< HEAD
 import numpy as np
 import math
+=======
+import math
+import numpy as np
+
+>>>>>>> a7f851b87fb6559bab677ec17cdf4ad9a0c2fefc
 from Satelite import DynamicSystem
 from gps_plot import plot_satelites
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     
     num_iterations: int = 50
     t_err_min: float = 10**(-12)
@@ -21,3 +28,13 @@ if __name__ == '__main__':
     
     print(pos)
     plot_satelites(ds, pos)
+=======
+    ds = DynamicSystem(n=8)
+    max_cop, max_emf, _, new = ds.compute_EMF(np.array([0,0,6370,0.0001]))
+    print(f"Maximum position error found: {max_cop} meters")
+    print(f"condition number of the problem: {max_emf}")
+
+    new[2] += DynamicSystem.earth_radius
+
+    plot_satelites(ds, new)
+>>>>>>> a7f851b87fb6559bab677ec17cdf4ad9a0c2fefc

@@ -19,15 +19,15 @@ class SateliteConnection:
     
 class DynamicSateliteConnection(SateliteConnection):
 
-    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, z: float = 6370):
+    def __init__(self, phi: float, theta: float, rho: float =26570, d: float = 0.0001, guess: tuple[float] = (0,0,6370)):
         assert phi >= 0 and phi <= math.pi/2, "phi not in range"
         assert theta >= 0 and theta <= 2*math.pi, "theta not in range"
 
         A: float = rho*math.cos(phi)*math.cos(theta)
         B: float = rho*math.cos(phi)*math.sin(theta)
         C: float = rho*math.sin(phi)
-
-        R = math.sqrt(A**2 + B**2 + (C-z)**2)
+        x,y,z = guess
+        R = math.sqrt((A-x)**2 + (B-y)**2 + (C-z)**2)
         t = d + R/SateliteSystem.speed_of_light
         super().__init__(A,B,C,t)
 
