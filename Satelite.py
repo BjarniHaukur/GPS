@@ -58,7 +58,22 @@ class SateliteSystem:
 
     def get_radii(self, unknowns: np.ndarray) -> Callable[[SateliteConnection], float]:
         return lambda sateliteConnection : math.sqrt(np.sum( (unknowns[:-1] - sateliteConnection.get_pos())**2 )) - SateliteSystem.speed_of_light*(sateliteConnection.t - unknowns[-1])
-    
+
+    def solve2(self,position):
+        curr_pos = position
+        old_pos = np.zeros_like(position)
+
+
+        iteration = 0
+        while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
+            A = self.DF(curr_pos)
+            
+            v = np.linalg.solve(A.T@A,-A.T@self.F(curr_pos))
+            old_pos = curr_pos
+            curr_pos = curr_pos + v
+            iteration += 1
+        return curr_pos
+
     def solve(self, position) -> np.ndarray:
         """ 
             Solves the system of equations according to the given travel times

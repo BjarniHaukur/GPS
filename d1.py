@@ -17,6 +17,8 @@ if __name__ == '__main__':
     print(math.sqrt(sum([x**2 for x in r_pos])))
     print(r_pos)
     plot_satelites(sys, r_pos, name="d1")
+    d1_sol = np.array([-41.77271,-16.78919,6370.0596, 0.003201566])
+    print("diff: ", np.sum(np.sqrt((d1_sol - r_pos)**2) ))
 
 
 

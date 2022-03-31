@@ -1,5 +1,6 @@
-import numpy as np
 import math
+import numpy as np
+
 from Satelite import DynamicSystem
 from gps_plot import plot_satelites
 
