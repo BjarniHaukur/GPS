@@ -82,27 +82,35 @@ class StaticSystem(SateliteSystem):
 class DynamicSystem(SateliteSystem):
 
     def __init__(self,theta_min = 0,theta_max = 2*math.pi,phi_min = 0,phi_max = math.pi/2, n= 4) -> 'DynamicSystem':
- 
+
+        self.args = (theta_min,theta_max,phi_min,phi_max,n) #used for reinitialization
+
         theta_values = np.linspace(theta_min,theta_max, num= n)
         phi_values = np.linspace(phi_min,phi_max,num=n)
         self.sateliteConnections = [DynamicSateliteConnection(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)]
 
-    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> float: #t_error á mögulega að vera mismunandi gildi.. ?? 
-        old_pos = self.solve(position)
-        old_pos_times = np.array([satelite.t for satelite in self.sateliteConnections])
-        
-        diff_pos_times = np.zeros_like(old_pos_times)
-        for i,satelite in enumerate(self.sateliteConnections):
-            t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1)
-            satelite.t += t_error
-            diff_pos_times[i] = np.abs(t_error)
+    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> float: #t_error á mögulega að vera mismunandi gildi.. ?? 
+        max_cop = float('-inf')
+        max_emf = float('-inf')
+        for _ in range(num_iterations):
+            old_pos = self.solve(position)
+            old_pos_times = np.array([satelite.t for satelite in self.sateliteConnections])
 
-        new_pos = self.solve(position)
+            diff_pos_times = np.zeros_like(old_pos_times)
+            for i,satelite in enumerate(self.sateliteConnections):
+                t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1) #different values for ti
+                satelite.t += t_error
+                diff_pos_times[i] = np.abs(t_error)
 
-        pos_change = np.abs(old_pos - new_pos)
-        emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
-        cop = distance(new_pos, old_pos)
-        print(f"COP: {cop} - EMF: {emf}")
+            new_pos = self.solve(position)
+
+            pos_change = np.abs(old_pos - new_pos)
+            emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
+            cop = distance(new_pos, old_pos)
+            max_cop = max(max_cop,cop)
+            max_emf = max(max_emf, emf)
+            self.__init__(*self.args)
+        return max_cop*1000, max_emf
 
 
 
