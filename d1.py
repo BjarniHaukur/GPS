@@ -17,14 +17,20 @@ if __name__ == '__main__':
     GN_pos = sys.solve_GN(init_guess)
     mN_pos = sys.solve_multivariate(init_guess)
 
-    print(GN_pos)
-    print(math.sqrt(sum([x**2 for x in GN_pos])))
-    print(mN_pos)
-    print(math.sqrt(sum([x**2 for x in mN_pos])))
-    
-    # plot_satelites(sys, r_pos, name="d1")
     d1_sol = np.array([-41.77271,-16.78919,6370.0596, 0.003201566])
-    print("diff: ", np.sum(np.sqrt((d1_sol - GN_pos)**2) ))
+
+    print("Coordinates from Gauss Newton:\n", GN_pos)
+    print(f"length of vector: {math.sqrt(sum([x**2 for x in GN_pos]))}")
+    print(f"error: {np.sum(np.sqrt((d1_sol - GN_pos)**2))*1000:.3f} meters")
+
+    print()
+
+    print("Coordinates from multivariate Newton's method:\n", mN_pos)
+    print(f"length of vector: {math.sqrt(sum([x**2 for x in mN_pos]))}")
+    print(f"error: {np.sum(np.sqrt((d1_sol - mN_pos)**2))*1000:.3f} meters")
+    
+    plot_satelites(sys, GN_pos, name="d1")
+    
 
 
 

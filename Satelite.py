@@ -65,14 +65,14 @@ class SateliteSystem:
        """
        curr_pos = position
        old_pos = np.zeros_like(position)
-       F_ = lambda x: self.F(position) + self.DF(position)@(x - position)
+       F_ = lambda x: self.r(position) + self.Dr(position)@(x - position)
 
        is_square = len(self.satelites)==4
 
        iteration = 0
        while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
            if is_square:
-               s = np.linalg.solve(self.DF(curr_pos), -F_(curr_pos))
+               s = np.linalg.solve(self.Dr(curr_pos), -F_(curr_pos))
            else:
                inv_matrix = np.linalg.pinv(self.DF(curr_pos))
                s = inv_matrix@(-F_(curr_pos))
@@ -80,7 +80,6 @@ class SateliteSystem:
            curr_pos = curr_pos + s
            iteration += 1
        return curr_pos
-
 
 
 class DynamicSystem(SateliteSystem):
@@ -106,7 +105,6 @@ class DynamicSystem(SateliteSystem):
        
             position_errors.append(position_error)
             emfs.append(emf)
-            self.__init__(*self.args)
 
         return position_errors, emfs
 
