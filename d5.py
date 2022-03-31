@@ -11,8 +11,8 @@ if __name__ == '__main__':
 
     ds = DynamicSystem(theta_max=math.pi/10, phi_max=math.pi/40)
     guess = np.array([0,0,6370,0.0001])
-    pe, emf = ds.compute_EMF(guess, t_err_min, t_err_max, num_iterations)
-    pos = ds.solve(guess)
+    pe, emf, pos = ds.compute_EMF(guess, t_err_min, t_err_max, num_iterations)
+    #pos = ds.solve(guess)
     print(f"With error rates ranging from {t_err_min} to {t_err_max} and {num_iterations} iterations we got:")
     print(f" a minimum position error of: {min(pe)*1000:.2f} meters,")
     print(f" an average position error of: {sum(pe)/len(pe)*1000:.2f} meters,")
