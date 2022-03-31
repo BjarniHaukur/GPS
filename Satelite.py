@@ -75,12 +75,6 @@ class SateliteSystem:
             iteration += 1
         return curr_pos
 
-# class StaticSystem(SateliteSystem):
-#     def __init__(self,*sateliteConnections): #(Ai,Bi,Ci,ti, d)
-#         self.satelites: tuple[SateliteConnection] = sateliteConnections
-
-    
-    
 
 
 class DynamicSystem(SateliteSystem):
@@ -114,7 +108,7 @@ class DynamicSystem(SateliteSystem):
             max_cop = max(max_cop,cop)
             max_emf = max(max_emf, emf)
             self.__init__(*self.args)
-        return max_cop*1000, max_emf
+        return max_cop*1000, max_emf, old_pos, new_pos
 
 
 
