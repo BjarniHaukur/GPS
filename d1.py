@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from Satelite import SateliteConnection, SateliteSystem
 from gps_plot import plot_satelites
 
@@ -12,6 +13,8 @@ if __name__ == '__main__':
     
     sys = SateliteSystem(*(sat1, sat2, sat3,sat4))
     r_pos = sys.solve(np.array([0,0,6370,0]))
+
+    print(math.sqrt(sum([x**2 for x in r_pos])))
     print(r_pos)
     plot_satelites(sys, r_pos, name="d1")
 

@@ -86,13 +86,13 @@ class SateliteSystem:
 
 class DynamicSystem(SateliteSystem):
 
-    def __init__(self, theta_min = 0, theta_max = 2*math.pi, phi_min = 0, phi_max = math.pi/2, n = 4):
+    def __init__(self, theta_min = 0, theta_max = 2*math.pi, phi_min = 0, phi_max = math.pi/2, n = 4, guess = (0,0,6370)):
 
         self.args = (theta_min,theta_max,phi_min,phi_max,n) #used for reinitialization
 
-        theta_values = np.linspace(theta_min, theta_max, num=n)
-        phi_values = np.linspace(phi_min, phi_max, num=n)
-        super().__init__(*(DynamicSateliteConnection(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)))
+        theta_values = np.random.uniform(theta_min, theta_max, n)
+        phi_values = np.random.uniform(phi_min, phi_max, n)
+        super().__init__(*(DynamicSateliteConnection(phi = phi, theta = theta, guess=guess) for (phi, theta) in zip(phi_values, theta_values)))
 
     def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> tuple[list[float],list[float]]: #t_error á mögulega að vera mismunandi gildi.. ?? 
         position_errors = []
@@ -117,7 +117,7 @@ class DynamicSystem(SateliteSystem):
             emfs.append(emf)
             self.__init__(*self.args)
 
-        return position_errors, emfs
+        return position_errors, emfs, new_pos
 
 
 
