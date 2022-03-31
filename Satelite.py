@@ -75,12 +75,6 @@ class SateliteSystem:
             iteration += 1
         return curr_pos
 
-# class StaticSystem(SateliteSystem):
-#     def __init__(self,*sateliteConnections): #(Ai,Bi,Ci,ti, d)
-#         self.satelites: tuple[SateliteConnection] = sateliteConnections
-
-    
-    
 
 
 class DynamicSystem(SateliteSystem):
