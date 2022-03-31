@@ -1,10 +1,34 @@
+<<<<<<< HEAD
+import numpy as np
+import math
+=======
 import math
 import numpy as np
 
+>>>>>>> a7f851b87fb6559bab677ec17cdf4ad9a0c2fefc
 from Satelite import DynamicSystem
 from gps_plot import plot_satelites
 
 if __name__ == '__main__':
+<<<<<<< HEAD
+    
+    num_iterations: int = 50
+    t_err_min: float = 10**(-12)
+    t_err_max: float = 10**(-8)
+
+    ds = DynamicSystem(n=8)
+    guess = np.array([6000,2000,1000,0.0001])
+    pe, emf = ds.compute_EMF(np.array(guess), t_err_min, t_err_max, num_iterations)
+    pos = ds.solve(np.array(guess))
+    print(f"With error rates ranging from {t_err_min} to {t_err_max} and {num_iterations} iterations we got:")
+    print(f" a minimum position error of: {min(pe)*1000:.2f} meters,")
+    print(f" an average position error of: {sum(pe)/len(pe)*1000:.2f} meters,")
+    print(f" a maximum position error of: {max(pe)*1000:.2f} meters,")
+    print(f" and the condition number of the problem is: {max(emf)}")
+    
+    print(pos)
+    plot_satelites(ds, pos)
+=======
     ds = DynamicSystem(n=8)
     max_cop, max_emf, _, new = ds.compute_EMF(np.array([0,0,6370,0.0001]))
     print(f"Maximum position error found: {max_cop} meters")
@@ -13,3 +37,4 @@ if __name__ == '__main__':
     new[2] += DynamicSystem.earth_radius
 
     plot_satelites(ds, new)
+>>>>>>> a7f851b87fb6559bab677ec17cdf4ad9a0c2fefc

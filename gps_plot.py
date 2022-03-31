@@ -14,9 +14,9 @@ def plot_satelites(sys: SateliteSystem, receiver: list[float], name="test"):
     zs = [sat.C for sat in satelites]
 
     
-    ax.set_xlim(-7000, 25000)
-    ax.set_ylim(-7000, 25000)
-    ax.set_zlim(-7000, 25000)
+    ax.set_xlim(-25000, 25000)
+    ax.set_ylim(-25000, 25000)
+    ax.set_zlim(-25000, 25000)
     ax.plot(0, 0, 0, marker='o', markersize=math.sqrt(SateliteSystem.earth_radius), c="blue")
     ax.plot(receiver[0], receiver[1], receiver[2], marker='o', markersize=5, c="orange")
     for x,y,z in zip(xs,ys,zs):
