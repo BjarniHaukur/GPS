@@ -1,11 +1,10 @@
 import math
 import numpy as np
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
 from random import randint, uniform
 from Methods import Jacobi_row, distance, e_mach
-
+from matplotlib import pyplot as plt
 
 
 @dataclass
@@ -34,27 +33,32 @@ class DynamicSateliteConnection(SateliteConnection):
 
 
    
-class SateliteSystem(ABC):
+class SateliteSystem:
 
-    earth_radius: int = 6371 # km
+    earth_radius: int = 6370 # km
     speed_of_light: float = 299792.458 # km/s
-      
+    
+    def __init__(self, *sateliteConnections):
+        self.satelites: list[SateliteConnection] = sateliteConnections
 
+    def get_satelites(self):
+        return self.satelites
 
     def F(self, unknowns: np.ndarray) -> np.ndarray:
-        solution = list(map(self.get_radii(unknowns), self.sateliteConnections))
+        solution = list(map(self.get_radii(unknowns), self.satelites))
         return np.array(solution)
 
     def DF(self,x):
         return np.hstack(
             (
-                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.sateliteConnections]),
-                np.array([SateliteSystem.speed_of_light for _ in range(len(self.sateliteConnections))]).reshape(4,1)
+                np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
+                np.array([SateliteSystem.speed_of_light for _ in range(len(self.satelites))]).reshape(4,1)
             )
         )
 
     def get_radii(self, unknowns: np.ndarray) -> Callable[[SateliteConnection], float]:
         return lambda sateliteConnection : math.sqrt(np.sum( (unknowns[:-1] - sateliteConnection.get_pos())**2 )) - SateliteSystem.speed_of_light*(sateliteConnection.t - unknowns[-1])
+    
     def solve(self,position) -> np.ndarray:
         """ 
             Solves the system of equations according to the given travel times
@@ -71,9 +75,9 @@ class SateliteSystem(ABC):
             iteration += 1
         return curr_pos
 
-class StaticSystem(SateliteSystem):
-    def __init__(self,*sateliteConnections): #(Ai,Bi,Ci,ti, d)
-        self.sateliteConnections: tuple[SateliteConnection] = sateliteConnections
+# class StaticSystem(SateliteSystem):
+#     def __init__(self,*sateliteConnections): #(Ai,Bi,Ci,ti, d)
+#         self.satelites: tuple[SateliteConnection] = sateliteConnections
 
     
     
@@ -81,23 +85,23 @@ class StaticSystem(SateliteSystem):
 
 class DynamicSystem(SateliteSystem):
 
-    def __init__(self,theta_min = 0,theta_max = 2*math.pi,phi_min = 0,phi_max = math.pi/2, n= 4) -> 'DynamicSystem':
+    def __init__(self, theta_min = 0, theta_max = 2*math.pi, phi_min = 0, phi_max = math.pi/2, n = 4) -> 'DynamicSystem':
 
         self.args = (theta_min,theta_max,phi_min,phi_max,n) #used for reinitialization
 
-        theta_values = np.linspace(theta_min,theta_max, num= n)
-        phi_values = np.linspace(phi_min,phi_max,num=n)
-        self.sateliteConnections = [DynamicSateliteConnection(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)]
+        theta_values = np.linspace(theta_min, theta_max, num=n)
+        phi_values = np.linspace(phi_min, phi_max, num=n)
+        super().__init__(*(DynamicSateliteConnection(phi = phi, theta = theta) for (phi, theta) in zip(phi_values, theta_values)))
 
     def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> float: #t_error á mögulega að vera mismunandi gildi.. ?? 
         max_cop = float('-inf')
         max_emf = float('-inf')
         for _ in range(num_iterations):
             old_pos = self.solve(position)
-            old_pos_times = np.array([satelite.t for satelite in self.sateliteConnections])
+            old_pos_times = np.array([satelite.t for satelite in self.satelites])
 
             diff_pos_times = np.zeros_like(old_pos_times)
-            for i,satelite in enumerate(self.sateliteConnections):
+            for i,satelite in enumerate(self.satelites):
                 t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1) #different values for ti
                 satelite.t += t_error
                 diff_pos_times[i] = np.abs(t_error)
@@ -111,6 +115,7 @@ class DynamicSystem(SateliteSystem):
             max_emf = max(max_emf, emf)
             self.__init__(*self.args)
         return max_cop*1000, max_emf
+
 
 
 
