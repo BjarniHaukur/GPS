@@ -52,21 +52,25 @@ class TestGps:
 
 SateliteGenerator = Callable[[], list[SateliteConnection]]
 
-def run_tests(test_fixt: TestGps, sat_gen: SateliteGenerator, n_in: int = 50, n_out: int = 10, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> pd.DataFrame:
-    df = pd.DataFrame(index=list(range(n_out)), columns=["min_pos_error", "avg_pos_error", "max_pos_error", "condition_number"])
-    guess = test_fixt.get_initial_guess()
-    for i in range(n_out):
-        
-        ds = DynamicSystem(sat_gen())
-        pe_hist = np.zeros(n_in)
-        emf_hist = np.zeros(n_in)
+def run_tests(angles: list[tuple[float]], phi_diff, theta_diff, n_sat, iters: int = 50, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), random=False) -> pd.DataFrame:
+    df = pd.DataFrame(index=angles, columns=["min_pos_error", "avg_pos_error", "max_pos_error", "condition_number"])
+    
+    for x in angles:
+        test = TestGps(x)
+        guess = test.get_initial_guess()
+        if random:
+            ds = DynamicSystem(test.get_random_satelites(phi_diff, theta_diff, n=n_sat))
+        else:
+            ds = DynamicSystem(test.get_linspace_satelites(phi_diff, theta_diff, n=n_sat))
 
-        for j in range(n_in):
+        pe_hist = np.zeros(iters)
+        emf_hist = np.zeros(iters)
+        for j in range(iters):
             pe_hist[j], emf_hist[j] = ds.compute_EMF(guess, t_err_min, t_err_max)
         
-        df.at[i, "min_pos_error"] = np.amin(pe_hist)*1000
-        df.at[i, "avg_pos_error"] = np.average(pe_hist)*1000
-        df.at[i, "max_pos_error"] = np.amax(pe_hist)*1000
-        df.at[i, "condition_number"] = np.amax(emf_hist)
+        df.at[x, "min_pos_error"] = np.amin(pe_hist)*1000
+        df.at[x, "avg_pos_error"] = np.average(pe_hist)*1000
+        df.at[x, "max_pos_error"] = np.amax(pe_hist)*1000
+        df.at[x, "condition_number"] = np.amax(emf_hist)
 
     return df

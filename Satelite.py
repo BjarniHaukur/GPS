@@ -89,7 +89,7 @@ class DynamicSystem(SateliteSystem):
         old_pos_times = np.array([satelite.t for satelite in self.satelites])
         diff_pos_times = np.zeros_like(old_pos_times)
         for i,satelite in enumerate(self.satelites):
-            t_error = t_err_max*(-1)**randint(0,1) #different values for ti
+            t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1) #different values for ti
             satelite.t += t_error # we reinitialize the class after using this function
             diff_pos_times[i] = np.abs(t_error)
 
