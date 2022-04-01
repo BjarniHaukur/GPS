@@ -19,7 +19,19 @@ class SateliteConnection:
 
 
 class SateliteSystem:
+    """
+    A system to calculate receiver position based on satelites.
+    
+    Class variables:
+        earth_radius: Radius of earth in kilometers
+        speed_of_light: Speed of light in kilmeters/second
+    Attributes:
+        satelites: a list of 'SateliteConnections'
 
+    Methods:
+        get_satelite: Returns a list of all satelites of the system.
+        
+    """
     earth_radius: int = 6370 # km
     speed_of_light: float = 299792.458 # km/s
     
@@ -29,11 +41,18 @@ class SateliteSystem:
     def get_satelites(self):
         return self.satelites
 
-    def r(self, unknowns: np.ndarray) -> np.ndarray:
-        solution = list(map(self.get_radii(unknowns), self.satelites))
+    def _r(self, unknowns: np.ndarray) -> np.ndarray:
+        solution = list(map(self._get_radii(unknowns), self.satelites))
         return np.array(solution)
 
-    def Dr(self,x):
+    def _Dr(self,x):
+        """
+        Input:
+            x: unknowns, (x,y,z,d) Estimated position of the receiver
+        Returns
+        ------
+        Jacobi matrix containing all partial derivates for each r_i
+        """
         return np.hstack(
             (
                 np.array([Jacobi_row(x[:-1], xy.get_pos()) for xy in self.satelites]),
@@ -41,50 +60,80 @@ class SateliteSystem:
             )
         )
 
-    def get_radii(self, unknowns: np.ndarray) -> Callable[[SateliteConnection], float]:
+    def _get_radii(self, unknowns: np.ndarray) -> Callable[[SateliteConnection], float]:
+        """
+        Input:
+            unknowns: (x,y,z,d), position estimate of the receiver
+        Returns
+        --------
+        Callable function, corresponding to the r function of the Gauss-Newton method.
+        """
         return lambda sateliteConnection : math.sqrt(np.sum( (unknowns[:-1] - sateliteConnection.get_pos())**2 )) - SateliteSystem.speed_of_light*(sateliteConnection.t - unknowns[-1])
 
-    def solve_GN(self,position):
+    def solve_GN(self,position: np.ndarray) -> np.ndarray:
+        """
+        Input:
+            position: (x,y,z,d) initial guess of the receivers position
+        Returns
+        -------
+        (x,y,z,d) values of the receiver
+        """
         curr_pos = position
         old_pos = np.zeros_like(position)
 
         iteration = 0
+        #GaussNewton method
         while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
-            A = self.Dr(curr_pos)
+            A = self._Dr(curr_pos)
             
-            v = np.linalg.solve(A.T@A,-A.T@self.r(curr_pos))
+            v = np.linalg.solve(A.T@A,-A.T@self._r(curr_pos))
             old_pos = curr_pos
             curr_pos = curr_pos + v
             iteration += 1
         return curr_pos
 
     def solve_multivariate(self, position) -> np.ndarray:
-       """ 
-           Solves the system of equations according to the given travel times
-           and the current positions of the sateliteConnections.
-       """
-       curr_pos = position
-       old_pos = np.zeros_like(position)
-       F_ = lambda x: self.r(position) + self.Dr(position)@(x - position)
+        """ 
+        Input:
+            position: (x,y,z,d) initial guess of the receiver's position
+        Returns
+        -------
+        (x,y,z,d) values of the receiver
+        """
 
-       is_square = len(self.satelites)==4
-
-       iteration = 0
-       while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
-           if is_square:
-               s = np.linalg.solve(self.Dr(curr_pos), -F_(curr_pos))
-           else:
-               inv_matrix = np.linalg.pinv(self.DF(curr_pos))
-               s = inv_matrix@(-F_(curr_pos))
-           old_pos = curr_pos
-           curr_pos = curr_pos + s
-           iteration += 1
-       return curr_pos
+        #Multivariate newton's method
+        curr_pos = position
+        old_pos = np.zeros_like(position)
+        F_ = lambda x: self.r(position) + self._Dr(position)@(x - position)  
+        is_square = len(self.satelites)==4  
+        iteration = 0
+        while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
+            if is_square:
+                s = np.linalg.solve(self._Dr(curr_pos), -F_(curr_pos))
+            else:
+                inv_matrix = np.linalg.pinv(self._Dr(curr_pos))
+                s = inv_matrix@(-F_(curr_pos))
+            old_pos = curr_pos
+            curr_pos = curr_pos + s
+            iteration += 1
+        return curr_pos
 
 
 class DynamicSystem(SateliteSystem):
+    """
+    Inherits 'SateliteSystem'
 
-    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> tuple[float, float]: #t_error á mögulega að vera mismunandi gildi.. ?? 
+    """
+    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> tuple[float, float]:
+        """
+        Input:
+            position: Initial position guess (x,y,z,d)
+            t_err_min: Minimum value for delta_t 
+            t_err_max: Maximum value for delta_t
+        Returns
+        ------
+        (Position Error, Error Magnification Factor)
+        """
         old_pos = self.solve_GN(position)
         old_pos_times = np.array([satelite.t for satelite in self.satelites])
         diff_pos_times = np.zeros_like(old_pos_times)
