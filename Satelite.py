@@ -9,6 +9,10 @@ from matplotlib import pyplot as plt
 
 @dataclass
 class SateliteConnection:
+    """
+    dataclass representing a connection to a satelite.
+    
+    """
     A: float
     B: float
     C: float 
@@ -45,7 +49,7 @@ class SateliteSystem:
         solution = list(map(self._get_radii(unknowns), self.satelites))
         return np.array(solution)
 
-    def _Dr(self,x):
+    def _jacobi_matrix(self,x):
         """
         Input:
             x: unknowns, (x,y,z,d) Estimated position of the receiver
@@ -76,7 +80,7 @@ class SateliteSystem:
             position: (x,y,z,d) initial guess of the receivers position
         Returns
         -------
-        (x,y,z,d) values of the receiver
+        (x,y,z,d) values of the receiver according to the Gauss-Newton method.
         """
         curr_pos = position
         old_pos = np.zeros_like(position)
@@ -84,7 +88,7 @@ class SateliteSystem:
         iteration = 0
         #GaussNewton method
         while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
-            A = self._Dr(curr_pos)
+            A = self._jacobi_matrix(curr_pos)
             
             v = np.linalg.solve(A.T@A,-A.T@self._r(curr_pos))
             old_pos = curr_pos
@@ -98,20 +102,20 @@ class SateliteSystem:
             position: (x,y,z,d) initial guess of the receiver's position
         Returns
         -------
-        (x,y,z,d) values of the receiver
+        (x,y,z,d) values of the receiver according to the multivariate newton's method.
         """
 
         #Multivariate newton's method
         curr_pos = position
         old_pos = np.zeros_like(position)
-        F_ = lambda x: self.r(position) + self._Dr(position)@(x - position)  
+        F_ = lambda x: self.r(position) + self._jacobi_matrix(position)@(x - position)  
         is_square = len(self.satelites)==4  
         iteration = 0
         while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
             if is_square:
-                s = np.linalg.solve(self._Dr(curr_pos), -F_(curr_pos))
+                s = np.linalg.solve(self._jacobi_matrix(curr_pos), -F_(curr_pos))
             else:
-                inv_matrix = np.linalg.pinv(self._Dr(curr_pos))
+                inv_matrix = np.linalg.pinv(self._jacobi_matrix(curr_pos))
                 s = inv_matrix@(-F_(curr_pos))
             old_pos = curr_pos
             curr_pos = curr_pos + s
