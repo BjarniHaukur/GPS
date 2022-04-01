@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Callable
 from random import randint, uniform
 from Methods import Jacobi_row, distance, e_mach
-from matplotlib import pyplot as plt
 
 
 @dataclass
