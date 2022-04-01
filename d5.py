@@ -8,7 +8,7 @@ from test_fixture import TestGps, run_tests, SateliteGenerator
 
 
 if __name__ == '__main__':
-    receivers =  [(0,0), (1.5, 1.5)]
+    receivers =  [(0,0), (-2,1), (2,1), (1.5, 0), (12,20)]
     
 
     df_lin = run_tests(receivers, phi_diff=math.pi/80, theta_diff=math.pi/20, iters=20, n_sat=4, random=False)

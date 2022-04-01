@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     test = TestGps((2,1.00004))
     guess = test.get_initial_guess()
-    ds = DynamicSystem(test.get_random_satelites(math.pi/80, math.pi/80, n=4))
+    ds = DynamicSystem(test.get_random_satelites(math.pi/4, math.pi/4, n=8))
     pos = ds.solve_GN(guess)
     print(pos)
     print(test.get_receiver_pos())

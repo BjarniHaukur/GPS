@@ -3,6 +3,7 @@ import math
 from Satelite import DynamicSystem, SateliteConnection
 from gps_plot import plot_satelites
 from test_fixture import TestGps, run_tests, SateliteGenerator
+from tabulate import tabulate
 
 
 
@@ -14,13 +15,16 @@ if __name__ == '__main__':
 
     print(df_lin)
 
-    test = TestGps((2,1.00004))
-    guess = test.get_initial_guess()
-    ds = DynamicSystem(test.get_random_satelites(math.pi/4, math.pi/3, n=4))
-    pos = ds.solve_GN(guess)
-    print(pos)
-    print(test.get_receiver_pos())
-    print("error: ", math.sqrt(sum([(x-y)**2 for x,y in zip(pos[:-1], test.get_receiver_pos())])))
-    plot_satelites(ds, pos)
+
+    print(tabulate(df_lin, tablefmt="latex", floatfmt=".2f"))
+
+    # test = TestGps((2,1.00004))
+    # guess = test.get_initial_guess()
+    # ds = DynamicSystem(test.get_random_satelites(math.pi/4, math.pi/3, n=4))
+    # pos = ds.solve_GN(guess)
+    # print(pos)
+    # print(test.get_receiver_pos())
+    # print("error: ", math.sqrt(sum([(x-y)**2 for x,y in zip(pos[:-1], test.get_receiver_pos())])))
+    # plot_satelites(ds, pos)
 
 

@@ -54,7 +54,7 @@ SateliteGenerator = Callable[[], list[SateliteConnection]]
 
 def run_tests(angles: list[tuple[float]], phi_diff, theta_diff, n_sat, iters: int = 50, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), random=False) -> pd.DataFrame:
     df = pd.DataFrame(index=angles, columns=["min_pos_error", "avg_pos_error", "max_pos_error", "condition_number"])
-    
+    df.index.name = "receiver_angle"
     for x in angles:
         test = TestGps(x)
         guess = test.get_initial_guess()
