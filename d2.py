@@ -59,4 +59,4 @@ if __name__ == '__main__':
         print("By inserting the roots into one of our original equations we get: ")
         print(f"r1: {math.sqrt(sum([x**2 for x in pos1])):.2f}km")
         print(f"r2: {math.sqrt(sum([x**2 for x in pos2])):.2f}km")
-        print("So the former root must be our solution since the radius of the latter is not on the Earth")
+        print("So the former root must be our solution since the radius of the latter is not on the Earth.")
