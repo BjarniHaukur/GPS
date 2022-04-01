@@ -45,6 +45,10 @@ class SateliteSystem:
         return lambda sateliteConnection : math.sqrt(np.sum( (unknowns[:-1] - sateliteConnection.get_pos())**2 )) - SateliteSystem.speed_of_light*(sateliteConnection.t - unknowns[-1])
 
     def solve_GN(self,position):
+        """ 
+           Solves the system of equations according to the given travel times
+           and the current positions of the sateliteConnections.
+        """
         curr_pos = position
         old_pos = np.zeros_like(position)
 
