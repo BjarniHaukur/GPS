@@ -1,31 +1,24 @@
 import numpy as np
 import math
-from Satelite import DynamicSystem
+from Satelite import DynamicSystem, SateliteConnection
 from gps_plot import plot_satelites
-from test_fixture import TestGps
+from test_fixture import TestGps, run_tests, SateliteGenerator
+from functools import partial
+
 
 if __name__ == '__main__':
-    
-    num_iterations: int = 50
-    t_err_min: float = 10**(-12)
-    t_err_max: float = 10**(-8)
-
     receiver = (2, 1)
     test = TestGps(receiver)
+    
+    sat_gen_linspace: SateliteGenerator = partial(test.get_linspace_satelites, phi_diff=math.pi/4, theta_diff=0.75*math.pi/2, n=4)
+    sat_gen_random: SateliteGenerator = partial(test.get_random_satelites, phi_diff=math.pi/4, theta_diff=0.75*math.pi/2, n=4)  
+    df_lin = run_tests(test, sat_gen_linspace, n_in=50, n_out=5)
+    df_rand = run_tests(test, sat_gen_random, n_in=50, n_out=5)
+    print(df_lin)
+    print(df_rand)
 
-    satelites = test.get_satelites(phi_diff=math.pi/4, theta_diff=math.pi/4, n=4)
-    guess = np.array(test.get_initial_guess())
-
-    ds = DynamicSystem(satelites)
-
-    pe, emf = ds.compute_EMF(np.array(guess), t_err_min, t_err_max, num_iterations)
-    print(f"With error rates ranging from {t_err_min} to {t_err_max} and {num_iterations} iterations we got:")
-    print(f" a minimum position error of: {min(pe)*1000:.2f} meters,")
-    print(f" an average position error of: {sum(pe)/len(pe)*1000:.2f} meters,")
-    print(f" a maximum position error of: {max(pe)*1000:.2f} meters,")
-    print(f" and the condition number of the problem is: {max(emf)}")
-
-    # pos = ds.solve_GN(np.array(guess))
+    # ds = DynamicSystem(sat_gen())
+    # pos = ds.solve_GN(test.get_initial_guess())
     # print(pos)
     # print(test.get_receiver_pos())
     # print("error: ", math.sqrt(sum([(x-y)**2 for x,y in zip(pos[:-1], test.get_receiver_pos())])))

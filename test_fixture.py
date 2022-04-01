@@ -1,7 +1,9 @@
 import math
 import numpy as np
-from Satelite import SateliteConnection, SateliteSystem
+from typing import Callable
+from Satelite import SateliteConnection, SateliteSystem, DynamicSystem
 from Methods import angle_to_coordinates
+import pandas as pd
 
 class TestGps:
 
@@ -22,12 +24,21 @@ class TestGps:
         """ Returns an initial guess in the middle of the section where the request came from """
         return np.array([*angle_to_coordinates(SateliteSystem.earth_radius, *self.__initial_guess), self.d])
 
-    def get_satelites(self, phi_diff = math.pi/2, theta_diff = 2*math.pi, rho = 26570, n = 4) -> list[SateliteConnection]:
+    def get_random_satelites(self, phi_diff = math.pi/2, theta_diff = 2*math.pi, rho = 26570, n = 4) -> list[SateliteConnection]:
         receiver_pos = self.get_receiver_pos()
         phi, theta = self.__initial_guess
 
         phi_values = np.random.uniform(phi-phi_diff, phi+phi_diff, n)
         theta_values = np.random.uniform(theta-theta_diff, theta+theta_diff, n)
+
+        return [self.make_satelite(rho, p, t, receiver_pos) for (p,t) in zip(phi_values, theta_values)]
+
+    def get_linspace_satelites(self, phi_diff = math.pi/2, theta_diff = 2*math.pi, rho = 26570, n = 4) -> list[SateliteConnection]:
+        receiver_pos = self.get_receiver_pos()
+        phi, theta = self.__initial_guess
+
+        phi_values = np.linspace(phi-phi_diff, phi+phi_diff, n)
+        theta_values = np.linspace(theta-theta_diff, theta+theta_diff, n)
 
         return [self.make_satelite(rho, p, t, receiver_pos) for (p,t) in zip(phi_values, theta_values)]
 
@@ -39,10 +50,24 @@ class TestGps:
         return SateliteConnection(A, B, C, t)
 
 
-# receiver = (math.pi*2, math.pi/2)
-# test = TestGps(receiver)
+SateliteGenerator = Callable[[], list[SateliteConnection]]
 
-# print(receiver)
-# init = test.get_initial_guess()
-# print(init)
-# print(test.angle_to_coordinates(22000, *init))
+def run_tests(test_fixt: TestGps, sat_gen: SateliteGenerator, n_in: int = 50, n_out: int = 10, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> pd.DataFrame:
+    df = pd.DataFrame(index=list(range(n_out)), columns=["min_pos_error", "avg_pos_error", "max_pos_error", "condition_number"])
+
+    for i in range(n_out):
+        guess = test_fixt.get_initial_guess()
+
+        ds = DynamicSystem(sat_gen())
+        pe_hist = np.zeros(n_in)
+        emf_hist = np.zeros(n_in)
+
+        for j in range(n_in):
+            pe_hist[j], emf_hist[j] = ds.compute_EMF(guess, t_err_min, t_err_max)
+        
+        df.at[i, "min_pos_error"] = np.amin(pe_hist)*1000
+        df.at[i, "avg_pos_error"] = np.average(pe_hist)*1000
+        df.at[i, "max_pos_error"] = np.amax(pe_hist)*1000
+        df.at[i, "condition_number"] = np.amax(emf_hist)
+
+    return df

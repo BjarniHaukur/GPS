@@ -24,4 +24,6 @@ def Jacobi_row(p: Point, p0: Point) -> Point:
     dist = distance(p, p0)
     return (p-p0)/dist  
     
+
+
     

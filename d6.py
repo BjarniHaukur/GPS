@@ -1,36 +1,25 @@
-import math
 import numpy as np
-
-from Satelite import DynamicSystem
+import math
+from Satelite import DynamicSystem, SateliteConnection
 from gps_plot import plot_satelites
+from test_fixture import TestGps, run_tests, SateliteGenerator
+from functools import partial
+
 
 if __name__ == '__main__':
+    receiver = (2, 1)
+    test = TestGps(receiver)
     
-    num_iterations: int = 50
-    t_err_min: float = 10**(-12)
-    t_err_max: float = 10**(-8)
+    sat_gen_linspace: SateliteGenerator = partial(test.get_linspace_satelites, phi_diff=math.pi/4, theta_diff=0.75*math.pi/2, n=8)
+    sat_gen_random: SateliteGenerator = partial(test.get_random_satelites, phi_diff=math.pi/4, theta_diff=0.75*math.pi/2, n=8)  
+    df_lin = run_tests(test, sat_gen_linspace, n_in=50, n_out=5)
+    df_rand = run_tests(test, sat_gen_random, n_in=50, n_out=5)
+    print(df_lin)
+    print(df_rand)
 
-    
-    guess = np.array([6370,0,0,0.0001])
-    guess2 = np.array([0,0,-6370,0.0001])
-    # guess2 = np.array([6000,2000,700,0.0001])
-    ds = DynamicSystem(n=128, guess=tuple(guess[:-1]))
-    # ds2 = DynamicSystem(n=8, guess=tuple(guess2[:-1]))
-    # pos1 = ds1.solve(guess1)
-    # # pos2 = ds2.solve(guess2)
-    # print(pos1)
-    # # print(pos2)
-
-    # plot_satelites(ds1, pos1)
-    # plot_satelites(ds2, pos2)
-
-    pe, emf, pos = ds.compute_EMF(np.array(guess), t_err_min, t_err_max, num_iterations)
-    pos = ds.solve(np.array(guess))
-    print(f"With error rates ranging from {t_err_min} to {t_err_max} and {num_iterations} iterations we got:")
-    print(f" a minimum position error of: {min(pe)*1000:.2f} meters,")
-    print(f" an average position error of: {sum(pe)/len(pe)*1000:.2f} meters,")
-    print(f" a maximum position error of: {max(pe)*1000:.2f} meters,")
-    print(f" and the condition number of the problem is: {max(emf)}")
-    
-    print(pos)
-    plot_satelites(ds, pos)
+    # ds = DynamicSystem(sat_gen())
+    # pos = ds.solve_GN(test.get_initial_guess())
+    # print(pos)
+    # print(test.get_receiver_pos())
+    # print("error: ", math.sqrt(sum([(x-y)**2 for x,y in zip(pos[:-1], test.get_receiver_pos())])))
+    # plot_satelites(ds, pos)

@@ -84,30 +84,21 @@ class SateliteSystem:
 
 class DynamicSystem(SateliteSystem):
 
-    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8), num_iterations = 10) -> tuple[list[float],list[float]]: #t_error á mögulega að vera mismunandi gildi.. ?? 
-        position_errors = []
-        emfs = []
-        for _ in range(num_iterations):
-            old_pos = self.solve_GN(position)
-            old_pos_times = np.array([satelite.t for satelite in self.satelites])
+    def compute_EMF(self, position: np.ndarray, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> tuple[float, float]: #t_error á mögulega að vera mismunandi gildi.. ?? 
+        old_pos = self.solve_GN(position)
+        old_pos_times = np.array([satelite.t for satelite in self.satelites])
+        diff_pos_times = np.zeros_like(old_pos_times)
+        for i,satelite in enumerate(self.satelites):
+            t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1) #different values for ti
+            satelite.t += t_error
+            diff_pos_times[i] = np.abs(t_error)
 
-            diff_pos_times = np.zeros_like(old_pos_times)
-            for i,satelite in enumerate(self.satelites):
-                t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1) #different values for ti
-                satelite.t += t_error
-                diff_pos_times[i] = np.abs(t_error)
+        new_pos = self.solve_GN(position)
 
-            new_pos = self.solve_GN(position)
+        pos_change = np.abs(old_pos - new_pos)
+        emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
+        position_error = distance(new_pos, old_pos)
 
-            pos_change = np.abs(old_pos - new_pos)
-            emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
-            position_error = distance(new_pos, old_pos)
-       
-            position_errors.append(position_error)
-            emfs.append(emf)
-
-        return position_errors, emfs
-
-
+        return position_error, emf
 
 
