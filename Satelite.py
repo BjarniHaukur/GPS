@@ -108,7 +108,7 @@ class SateliteSystem:
         #Multivariate newton's method
         curr_pos = position
         old_pos = np.zeros_like(position)
-        F_ = lambda x: self.r(position) + self._jacobi_matrix(position)@(x - position)  
+        F_ = lambda x: self._r(position) + self._jacobi_matrix(position)@(x - position)  
         is_square = len(self.satelites)==4  
         iteration = 0
         while (np.any((curr_pos-old_pos) > e_mach) and iteration < 1000):
