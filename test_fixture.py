@@ -1,19 +1,18 @@
 import math
 import numpy as np
-from typing import Callable
 from Satelite import SateliteConnection, SateliteSystem, DynamicSystem
 from Methods import angle_to_coordinates
 import pandas as pd
 
 class TestGps:
 
-    def __init__(self, receiver, d = 0.0001):
+    def __init__(self, receiver, div_phi = math.pi/2, div_theta = math.pi/2, d = 0.0001):
         self.receiver: tuple[float] = receiver
         self.d = d
 
-        self.__quadrant_phi = math.floor(receiver[0]/(math.pi/2))
-        self.__quadrant_theta = math.floor(receiver[1]/(math.pi/2))
-        self.__initial_guess = ((self.__quadrant_phi+0.5)*math.pi/2, (self.__quadrant_theta+0.5)*math.pi/2)
+        self.__quadrant_phi = math.floor(receiver[0]/div_phi)
+        self.__quadrant_theta = math.floor(receiver[1]/div_theta)
+        self.__initial_guess = ((self.__quadrant_phi+0.5)*div_phi, (self.__quadrant_theta+0.5)*div_theta)
 
     def get_receiver_pos(self) -> tuple[float]:
         return np.array(angle_to_coordinates(
@@ -55,7 +54,7 @@ def run_tests(angles: list[tuple[float]], phi_diff, theta_diff, n_sat, iters: in
     df = pd.DataFrame(index=angles, columns=["min_pos_error", "avg_pos_error", "max_pos_error", "condition_number"])
     df.index.name = "receiver_angle"
     for x in angles:
-        test = TestGps(x)
+        test = TestGps(x, phi_diff, theta_diff)
         guess = test.get_initial_guess()
         if random:
             ds = DynamicSystem(test.get_random_satelites(phi_diff, theta_diff, n=n_sat))

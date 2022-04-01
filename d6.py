@@ -17,7 +17,7 @@ if __name__ == '__main__':
     print(tabulate(df_rand, tablefmt="latex", floatfmt=".2f"))
 
 
-    test = TestGps((2,1))
+    test = TestGps((2,1), math.pi/4, math.pi/4)
     guess = test.get_initial_guess()
     ds = DynamicSystem(test.get_random_satelites(math.pi/4, math.pi/4, n=8))
     pos = ds.solve_GN(guess)
