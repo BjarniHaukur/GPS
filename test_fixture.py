@@ -54,10 +54,9 @@ SateliteGenerator = Callable[[], list[SateliteConnection]]
 
 def run_tests(test_fixt: TestGps, sat_gen: SateliteGenerator, n_in: int = 50, n_out: int = 10, t_err_min: float = 10**(-12), t_err_max: float = 10**(-8)) -> pd.DataFrame:
     df = pd.DataFrame(index=list(range(n_out)), columns=["min_pos_error", "avg_pos_error", "max_pos_error", "condition_number"])
-
+    guess = test_fixt.get_initial_guess()
     for i in range(n_out):
-        guess = test_fixt.get_initial_guess()
-
+        
         ds = DynamicSystem(sat_gen())
         pe_hist = np.zeros(n_in)
         emf_hist = np.zeros(n_in)

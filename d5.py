@@ -9,7 +9,7 @@ from functools import partial
 
 
 if __name__ == '__main__':
-    receiver = (2, 1)
+    receiver = (2, 2)
     test = TestGps(receiver)
     
     sat_gen_linspace: SateliteGenerator = partial(test.get_linspace_satelites, phi_diff=math.pi/80, theta_diff=math.pi/20, n=4)

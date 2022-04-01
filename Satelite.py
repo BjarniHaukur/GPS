@@ -89,13 +89,11 @@ class DynamicSystem(SateliteSystem):
         old_pos_times = np.array([satelite.t for satelite in self.satelites])
         diff_pos_times = np.zeros_like(old_pos_times)
         for i,satelite in enumerate(self.satelites):
-            t_error = uniform(t_err_min, t_err_max)*(-1)**randint(0,1) #different values for ti
-            satelite.t += t_error
+            t_error = t_err_max*(-1)**randint(0,1) #different values for ti
+            satelite.t += t_error # we reinitialize the class after using this function
             diff_pos_times[i] = np.abs(t_error)
 
         new_pos = self.solve_GN(position)
-        for i, sat in enumerate(self.satelites):
-            sat.t = old_pos_times[i]
         pos_change = np.abs(old_pos - new_pos)
         emf = np.amax(pos_change)/(SateliteSystem.speed_of_light*np.amax(diff_pos_times))
         position_error = distance(new_pos, old_pos)
